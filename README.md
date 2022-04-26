@@ -26,7 +26,7 @@ y en esta práctica se registrará quién es el autor de los posts creados.
 Es necesario utilizar la **versión 16 de Node.js** para el desarrollo de esta práctica.
 El proyecto debe clonarse en el ordenador en el que se está trabajando:
 
-    $ git clone https://github.com/CORE-UPM/P8_Autore
+    $ git clone https://github.com/CORE-UPM/P8_Autores
 
 A continuación se debe acceder al directorio de trabajo, e instalar todas las dependencias propias de esta práctica.
 
