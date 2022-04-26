@@ -200,4 +200,6 @@ TestUtils.create_browser = function(url, wait=WAIT) {
 
 TestUtils.has_failed = function() { return error_critical };
 
+TestUtils.DEBUG = DEBUG;
+
 module.exports = TestUtils;

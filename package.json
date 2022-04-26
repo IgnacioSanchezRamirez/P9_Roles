@@ -2,12 +2,12 @@
     "name": "P7_Autenticacion",
     "author": "CORE-UPM",
     "license": "GNU",
-    "version": "0.1.1",
+    "version": "0.1.0",
     "info": {
-        "githubURL": "CORE-UPM/P7_Autenticacion",
+        "githubURL": "CORE-UPM/P8_Autores",
         "serverUrl": "https://autocorector.dit.upm.es/",
         "courseId": "395",
-        "assignmentId": "53136"
+        "assignmentId": ""
     },
     "dependencies": {
         "sequelize": "^6.17.0",
