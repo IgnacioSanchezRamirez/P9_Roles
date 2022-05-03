@@ -1,103 +1,117 @@
 
-# Práctica 8: Autores
+# Práctica 9: Roles
 
-Versión: 26 de Abril de 2022
+Versión: 3 de Mayo de 2022
 
 ## Objetivos
-
 * Afianzar los conocimientos obtenidos sobre el uso de Express para desarrollar servidores web.
-* Aprender a manejar relaciones entre los modelos de la BBDD.
+* Aprender a gestionar roles y permisos para definir que operaciones puede hacer cada usuario.
 
 ## Descripción de la práctica
 
-En esta práctica 8 se ampliará la **Práctica 7 Autenticación** para poder registrar que usuario ha sido el autor de cada post.
+En esta práctica 9 se ampliará la **Práctica 8 Autores** añadiendo un sistema de permisos que limiten
+las operaciones que puede hacer un usuario en funcion de su rol.
 
-Para ello se modificará la tabla **Posts** de la BBDD añadiendo un nuevo campo llamado **authorId**.
-En este campo se guardará el **id** del usuario que ha creado el post, que es el usuario que ha realizado login. 
-Si el usuario que crea el post no se ha logueado, entonces no se guardará ningún valor en el campo **authorId**.
+Estas limitaciones deben añadirse en los controladores, en las definiciones de rutas y en las vistas.
 
-El desarrollo pedido en esta práctica es prácticamente igual al realizado en el mini proyecto **Autores** visto
+El alumno creará nuevos middlewares en los controladores de usuarios y posts. 
+En funcion del rol del usuario, los nuevos middlewares permitirán el desarrollo normal de las
+peticiones, o abortarán su ejecución.
+
+El alumno usará estos middlewares en la definición de las rutas existentes, controlando que se puede 
+y que no se puede ejecutar dependiendo del rol del usuario.
+
+Por último, el usuario modificará las vistas para no mostrar los botones o enlaces que no 
+le están permitidos al usuario en funcion de su rol.
+
+El desarrollo pedido en esta práctica es igual al realizado en el mini proyecto **Autores y Autorización** visto
 en las clases teóricas de la asignatura.
-En el mini proyecto **Autores** se registraba quién era el autor de los quizzes creados, 
-y en esta práctica se registrará quién es el autor de los posts creados.
+En el mini proyecto **Autores y Autorización** se impedía la ejecución de algunas primitivas en funcion del rol 
+del usuario, y en esta práctica se aplicarán las mismas limitataciones, y se definiran otras nuevas.
+
+Las limitaciones que se añadirán a la práctica son las siguientes:
+
+* Para publicar un post el usuario debe estar logueado.
+* Los posts solo pueden ser editados por su autor, o por un usuario administrador.
+* Los posts solo pueden ser borrados por su autor, o por un usuario administrador.
+* La lista de usuarios registrados solo la puede ver un usuario administrador.
+* El perfil de un usuario solo lo puede ver el propio usuario, o un usuario administrador.
+* Solo el administrador puede crear nuevos usuarios.
+* El perfil de un usuario solo lo puede editar el propio usuario, o un usuario administrador.
+* Borrar a un usuario de la BBDD solo le está permitido al propio usuario, o a un usuario administrador.
 
 ## Descargar el código del proyecto
 
 Es necesario utilizar la **versión 16 de Node.js** para el desarrollo de esta práctica.
 El proyecto debe clonarse en el ordenador en el que se está trabajando:
 
-    $ git clone https://github.com/CORE-UPM/P8_Autores
+    $ git clone https://github.com/CORE-UPM/Entrega9_Roles
 
 A continuación se debe acceder al directorio de trabajo, e instalar todas las dependencias propias de esta práctica.
 
-    $ cd P8_Autores
+    $ cd Entrega9_Roles
     $ npm install
 
 ## Tareas
 
-### Tarea 1 - Copiar el trabajo ya realizado en la Entrega 7 Autenticación
+### Tarea 1 - Copiar el trabajo ya realizado en la Entrega 8 Autores
 
-En esta práctica hay que continuar y ampliar el desarrollo realizado en la práctica 7.
+En esta práctica hay que continuar y ampliar el desarrollo realizado en la práctica 8.
 
-El alumno debe copiar el directorio **blog** de la **P7_autenticacion** en el directorio **P8_Autores/blog** de
-esta práctica 8. Las tareas a realizar en esta práctica 8 de desarrollarán dentro del directorio **P8_Autores/blog**.
+El alumno debe copiar el directorio **blog** de la **Entrega8_autores** en el directorio **Entrega9_Roles/blog** de
+esta práctica 9. Las tareas a realizar en esta práctica 9 de desarrollarán dentro del directorio **Entrega9_Roles/blog**.
 
-Para copiar/duplicar el directorio **P7_autenticacion/blog** en el directorio **P8_Autores/blog**, puede usar un
+Para copiar/duplicar el directorio **Entrega8_autores/blog** en el directorio **Entrega9_Roles/blog**, puede usar un
 explorador de archivos. Asegúrese de copiar el directorio y no de moverlo de sitio, para no perder el trabajo original.
 También puede ejecutar el siguiente comando en un terminal unix para copiar el directorio y todo su contenido:
 
-    $ cp -r PATH_DE_PRACTICA_7/P7_autenticacion/blog PATH_DE_PRACTICA_8/P8_Autores/.
+    $ cp -r PATH_DE_PRACTICA_8/Entrega8_autores/blog PATH_DE_PRACTICA_9/Entrega9_Roles/.
 
-### Tarea 2 - Definir la relación 1-a-N entre los modelos
+### Tarea 2 - Crear los middlewares que protegen ciertas primitivas
 
-Hay que definir una relación entre los modelos **User** y **Post** para indicar que cada post tiene un 
-usuario como autor, y que un usuario puede ser el autor de muchos posts. Esta es una relación 1-a-N.
+Los middlewares que se usarán en esta práctica son parecidos o iguales  que los se desarrollaron en el mini proyecto **Autores y Autorización** para
+los quizzes. 
 
-El alumno tiene que definir esta relación en el fichero **models/index.js** 
-y cumplir con los siguientes requisitos:
+El alumno puede reutilizar los middlewares **loginRequired** y **adminOrMyselfRequired** del controlador de sesiones. 
+El middleware **loginRequired** aborta la petición en curso si el usuario no está logueado, y le redirige a la página de login.
+El middleware **adminOrMyselfRequired** aborta la petición en curso si el usuario logueado no es un administrador o no es el usuario al que se refiere
+el parámetro de ruta **:userId**.
 
-* La clave externa usada para definir esta relación debe llamarse **authorId**.
-* Use el nombre **"posts"** como alias al indicar que un usuario tiene muchos posts de los que es el autor.
-* Use el nombre **"author"** como alias al indicar que un post pertenece al usuario que ha sido su autor.
+El alumno debe crear otro middleware en el controlador de sesiones, llamado **adminRequired**, 
+que solo permita la ejecución de la petición en curso si el usuario logueado es un administrador.
 
-El alumno también tiene que crear una migración en un fichero con nombre **migrations/YYYYMMDDhhmmss-AddAuthorIdToPostsTabl
-e.js**.
-Esta migración debe modificar la tabla **Posts** de la BBDD añadiendo el campo **authorId**.
+El alumno debe crear un middleware llamado **adminOrAuthorRequired** en el controlador de los posts. 
+Este middleware debe abortar la petición en curso si el usuario logueado no es un administrador, o no es el autor del post al que se refiere
+el parámetro de ruta **:postId**.
+En el controlador de los quizzes del mini proyecto **Quiz** existe un middleware, también llamado **adminOrAuthorRequired**,  
+que aborta la petición en curso si el usuario logueado no es un administrador, o no es el autor del quiz al que se refiere
+el parámetro de ruta **:quizId**. 
+El alumno puede inspirarse en este middleware para implementar el que se le pide.
 
+Los middlewares anteriores deben usarse en las definiciones de las rutas de **routes/index.js** para impedir las ejecuciones 
+que se han enumerado más arriba, en la descripción de la práctica.
 
-### Tarea 3 - Asignar el autor al crear un post.
+#### Probar
 
-Si hay un usuario logueado, éste será el autor de los posts que cree.
-En este caso se guardará el valor del campo **id** del usuario, en el campo **authorId** de cada post creado.
+Ya puede probar si las rutas están bien protegidas. Logueese con diferentes tipos de usuarios y compruebe que los botones y enlaces de las rutas protegidas no funcionan.
 
-Si no hay usuario logueado, no puede saberse quién es el autor de los posts creados.
-En este caso se dejara vacio el campo **authorId** de los posts creados.
+Támbien deberia probar las rutas que son llamadas internamente desde los formularios.
 
-El alumno debe adaptar el middleware **create** del controlador de los posts para ver si hay un usuario logueado o no, 
-y asignar el valor adecuado al campo **authorId** del post que está creando.
+### Tarea 3 - Adaptar las vistas
 
+En esta tarea el alumno tiene que modificar las vistas para no mostrar los enlaces o botones que conectan con las primitivas protegidas. 
 
-### Tarea 4 - Mostrar el nombre del autor en las vistas de los posts.
+El alumno debe añadir en las vistas EJS el código javascript necesario para que:
 
-En esta tarea el alumno debe modificar las vistas **views/posts/show.ejs** y 
-**views/posts/index.ejs** para presentar el **nombre del autor** (`username`) de cada post mostrado.
-Si algún post no tiene autor, debe mostrarse el texto **Anonymous** en vez del nombre del autor.
-Para mostrar el nombre, se puede utilizar cualquier etiqueta HTML, pero se debe utilizar el id **author** en el caso del formulario, y la clase **author** en el caso del índice de posts.
+* El botón de crear un nuevo post solo le aparezca al usuario si está logueado.
+* Los botones para editar o borrar un post solo le aparecen a los usuarios administradores o al autor del post.
+* El botón de crear un nuevo usuario solo le aparezca a los usuarios administradores.
+* El botón de la barra de navegación que muestra el listado de usuarios solo le aparece a los usuario administradores.
+* Los botones para ver un usuario, editarlo o borrarlo solo le aparecen al propio usuario, o un usuario administrador.
 
-Cuando se renderizan las vistas anteriores, el autor de cada post debe estar accesible en la propiedad **author** de los objetos **Post** sacados de la base de datos. 
-Para ello se debe realizar una carga ansiosa de los autores al recuperar los posts de la BBDD.
-El alumno debe usar la opción **include** para cargar los autores de los posts en las llamadas a **findByPk** y a **findAll** que se realizan en los métodos **load** e **index** del controlador de los posts.
+#### Probar
 
-
-### Tarea 5 - Aplicar migración y probar
-
-LLegados a este punto ya se ha terminado todo el desarrollo de la práctica.
-
-Solo falta aplicar la migración creada en la tareas anteriores ejecutando:
-
-      npm run migrate
-
-y probar el funcionamiento del nuevo servidor.
+Ya puede probar si los botones y enlaces se ocultan o muestran según el rol del usuario logueado.
 
 
 ## Prueba de la práctica
@@ -138,11 +152,51 @@ En el enlace **https://www.npmjs.com/package/autocorector** se proveen instrucci
 
 **RÚBRICA**: Se puntuará el ejercicio a corregir sumando el % indicado a la nota total si la parte indicada es correcta:
 
-- **20%:** Si hay un usuario logueado y crea un post, entonces el campo **authorId** del post debe ser igual al **id** del usuario logueado.
-- **15%:** Si no hay un usuario logueado y se crea un post, entonces el campo **authorId** del post debe estar vacío.
-- **20%:** Si un post tiene autor, entonces la vista **show** de ese post debe mostrar el nombre del autor.
-- **15%:** Si un post no tiene autor, entonces la vista **show** de ese post debe mostrar el texto **Anonymous** como nombre del autor.
-- **30%:** La vista **index** debe mostrar el nombre del autor o el texto **Anonymous** para todos los posts listados.
+- **5%:** * No se puede publicar un post si no hay nadie logueado.
+- **3%:** * El botón de crear un post no aparece si no hay nadie logueado.
+- **3%:** * Se puede publicar un post si hay alguien logueado.
+- **3%:** * El botón de crear un post aparece si hay alguien logueado.
+- **2%:** * Un post no puede editarse si no hay nadie logueado.
+- **2%:** * El botón de editar un post no aparece si no hay nadie logueado.
+- **2%:** * Un post no puede editarse si el usuario logueado no es ni administrador, ni el autor del post.
+- **2%:** * El botón de editar un post no aparece si el usuario logueado no es ni administrador, ni el autor del post.
+- **2%:** * Un post puede ser editado por su autor.
+- **2%:** * El botón de editar un post aparece si el usuario logueado es el autor del post.
+- **2%:** * Un post puede ser editado por un administrador.
+- **2%:** * El botón de editar un post aparece si el usuario logueado es un administrador.
+
+- **2%:** * Un post no puede borrarse si no hay nadie logueado.
+- **2%:** * El botón de borrar un post no aparece si no hay nadie logueado.
+- **2%:** * Un post no puede borrarse si el usuario logueado no es ni administrador, ni el autor del post.
+- **2%:** * El botón de borrar un post no aparece si el usuario logueado no es ni administrador, ni el autor del post.
+- **2%:** * Un post puede ser borrado por su autor.
+- **2%:** * El botón de borrar un post aparece si el usuario logueado es el autor del post.
+- **2%:** * Un post puede ser borrado por un administrador.
+- **2%:** * El botón de borrar un post aparece si el usuario logueado es un administrador.
+
+- **2%:** * La peticion /users no está permitida si nadie está logueado.
+- **2%:** * La peticion /users no está permitida si el usuario logueado no es un administrador.
+- **2%:** * La peticion /users  está permitida si el usuario logueado  es un administrador.
+
+- **2%:** * El boton /users de la barra de navegación no aparece si no hay nadie logueado.
+- **2%:** * El boton /users de la barra de navegación no aparece si el usuario logueado no es administrador.
+- **2%:** * El boton /users de la barra de navegación  aparece si el usuario logueado es administrador.
+
+- **4%:** * La petición para ver el perfil de un usuario no está permitida si no hay nadie logueado.
+- **4%:** * La petición para ver el perfil de un usuario no está permitida si el usuario logueado no es un administrador.
+- **4%:** * La petición para ver el perfil de un usuario está permitida si el usuario logueado es un administrador.
+
+- **3%:** * La petición para editar el perfil de un usuario no está permitida si no hay nadie logueado.
+- **3%:** * La petición para editar el perfil de un usuario no está permitida si el usuario logueado no es un administrador.
+- **3%:** * La petición para editar el perfil de un usuario está permitida si el usuario logueado es un administrador.
+
+- **3%:** * La petición para borrar el perfil de un usuario no está permitida si no hay nadie logueado.
+- **3%:** * La petición para borrar el perfil de un usuario no está permitida si el usuario logueado no es un administrador.
+- **3%:** * La petición para borrar el perfil de un usuario está permitida si el usuario logueado es un administrador.
+
+- **4%:** * La petición para crear un usuario no está permitida si no hay nadie logueado.
+- **4%:** * La petición para crear un usuario no está permitida si el usuario logueado no es un administrador.
+- **4%:** * La petición para crear un usuario está permitida si el usuario logueado es un administrador.
+
 
 Si pasa todos los tests se dará la máxima puntuación.
-

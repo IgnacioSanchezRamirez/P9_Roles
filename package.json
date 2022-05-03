@@ -1,10 +1,10 @@
 {
-    "name": "P7_Autenticacion",
+    "name": "P9_Roles",
     "author": "CORE-UPM",
     "license": "GNU",
     "version": "0.1.0",
     "info": {
-        "githubURL": "CORE-UPM/P8_Autores",
+        "githubURL": "CORE-UPM/P9_Roles",
         "serverUrl": "https://autocorector.dit.upm.es/",
         "courseId": "395",
         "assignmentId": ""

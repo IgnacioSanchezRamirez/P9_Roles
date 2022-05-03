@@ -20,7 +20,7 @@ let browser = create_browser();
 var server;
 
 
-describe("Tests Práctica 7", function() {
+describe("Tests Práctica 9", function() {
     after(function () {
         warn_errors();
     });
@@ -107,10 +107,44 @@ describe("Tests Práctica 7", function() {
         const db_filename = 'blog.sqlite';
         const db_file = path.resolve(path.join(ROOT, db_filename));
 
-        const users = [
-            {id: 1, username: "admin", email: "admin@core.example", password: "1234"},
-            {id: 2, username: "pepe", email: "pepe@core.example", password: "5678"},
-        ];
+        const cookie_name = 'connect.sid';
+
+        const users = {
+            'admin': {id: 1, username: "admin", email: "admin@core.example", password: "1234"},
+            'pepe': {id: 2, username: "pepe", email: "pepe@core.example", password: "5678"},
+        };
+
+        async function asUser(username, fn) {
+            browser.deleteCookie(cookie_name);
+            if (username) {
+                let user = users[username];
+                browser.setCookie(cookie_name, user.cookie);
+            } else {
+                username = "anónimo (sin login)";
+            }
+            try{
+                await fn.apply(this, []);
+            }catch(e){
+                // Esta parte sólo funciona si se usa asUsers.apply(this, [argumentos]) siempre.
+                // y allUsers.apply, si se usa dentro de esa función.
+                if(!this.msg_err) {
+                    this.msg_err = `Fallo con el usuario ${username}`;
+                } else {
+                    this.msg_err += `, con el usuario ${username}`;
+                }
+                log(browser.html());
+                throw e;
+            }
+            browser.deleteCookie(cookie_name);
+        }
+
+        async function allUsers(fn) {
+            for(var name in users) {
+                await await asUser.apply(this, [name, async function () {
+                    return fn.apply(this, [users[name]]);
+                }]);
+            }
+        }
 
         before(async function() {
             if(has_failed()){
@@ -136,7 +170,7 @@ describe("Tests Práctica 7", function() {
 
 
             let bin_path = path.join(PATH_ASSIGNMENT, "bin", "www");
-            server = spawn('node', [bin_path], {env: {PORT: TEST_PORT, DATABASE_URL: db_relative_url}});
+            server = spawn('node', [bin_path], {env: {DEBUG: DEBUG, PORT: TEST_PORT, DATABASE_URL: db_relative_url}});
             server.stdout.setEncoding('utf-8');
             server.stdout.on('data', function(data) {
                 log('Salida del servidor: ', data);
@@ -152,7 +186,21 @@ describe("Tests Práctica 7", function() {
                 browser.assert.status(200);
             }catch(e){
                 console.log("No se ha podido contactar con el servidor.");
-                throw(e);
+                throw new Error(e);
+            }
+
+            for(var key in users) {
+                let user = users[key];
+
+                await browser.visit("/login/");
+                await browser.fill('username', user.username);
+                await browser.fill('password', user.password);
+                await browser.pressButton('Login');
+
+                browser.html().includes(user.username).should.be.equal(true);
+
+                user.cookie = browser.getCookie(cookie_name);
+                browser.deleteCookie(cookie_name);
             }
         });
 
@@ -177,155 +225,390 @@ describe("Tests Práctica 7", function() {
                 log(e);
             }
         });
+        /*
+         */
 
-        scored(`Si hay un usuario logueado y crea un post, entonces el campo **authorId** del post debe ser igual al **id** del usuario logueado.`, 2.0, async function() {
-
-            for(user of users) {
-                await browser.visit(`/login?_method=DELETE`);
-                await browser.visit(`/login`);
-                this.msg_err = `No se ha podido hacer login con ${user.username} y ${user.password}`;
-
-                browser.assert.status(200)
-                await browser.fill('#username', user.username);
-                await browser.fill('#password', user.password);
-                await browser.pressButton('input[name=commit]');
-                // It should not redirect to the login page
-                log(browser.location.href);
-                browser.location.href.includes("login").should.be.equal(false);
-
-
-                this.msg_err = 'No se muestra la página de creación de posts';
-
-                await browser.visit("/posts/new");
-                browser.assert.status(200);
-
-                this.msg_err = 'No se puede crear un nuevo post';
-                browser.assert.element('#title');
-                browser.assert.element('#body');
-                browser.assert.element('#enviar');
-                const title = `Titulo con usuario ${user.username} raw`;
-                const body = `Cuerpo con usuario ${user.username} raw`;
-                await browser.fill('#title', title);
-                await browser.fill('#body', body);
-                await browser.pressButton('#enviar');
-                browser.assert.status(200);
-
-                this.msg_err = `No se encuentra el post creado en la base de datos`;
-
-                const [res, metadata] = await sequelize.query(`SELECT * from Posts where title = ? and body = ?`, {
-                    logging: DEBUG,
-                    raw: true,
-                    replacements: [title, body],
-                });
-                log(res);
-                (res.length).should.be.equal(1);
-                this.msg_err = `La nuevo post no tiene el campo authorId adecuado (Se espera ${user.id}, se obtiene ${res[0].authorId})`;
-                res[0].authorId.should.be.equal(user.id);
-            }
-        });
-
-        scored(`Si no hay un usuario logueado y se crea un post, entonces el campo **authorId** del post debe estar vacío.`, 1.5, async function() {
-            await browser.visit(`/login?_method=DELETE`);
-            this.msg_err = 'No se muestra la página de creación de posts';
-
+        scored(`No se puede publicar un post si no hay nadie logueado.`, 0.5 , async function(){
             await browser.visit("/posts/new");
-            browser.assert.status(200);
-
-            this.msg_err = 'No se puede crear un nuevo post';
-            browser.assert.element('#title');
-            browser.assert.element('#body');
-            browser.assert.element('#enviar');
-            const title = 'Post con usuario anónimo';
-            const body = 'Cuerpo con usuario anónimo';
-            await browser.fill('#title', title);
-            await browser.fill('#body', body);
-            await browser.pressButton('#enviar');
-            browser.assert.status(200);
-
-            this.msg_err = `No se encuentra el post creado en la base de datos`;
-
-            const [res, metadata] = await sequelize.query(`SELECT * from Posts where title = ? and body = ?`, {
-                logging: DEBUG,
-                raw: true,
-                replacements: [title, body],
-            });
-            log(res);
-            (res.length).should.be.equal(1);
-            this.msg_err = `La nuevo post no tiene el campo authorId en blanco (Se obtuvo ${res[0].authorId})`;
-            should.not.exist(res[0].authorId);
+            this.msg_err = 'Se muestra la página sin haber hecho login o no se redirecciona a login';
+            browser.location.href.includes('/login').should.be.equal(true);
         });
 
-        scored(`Si un post tiene autor, entonces la vista **show** de ese post debe mostrar el nombre del autor.`, 2.0, async function() {
-            for(user of users) {
-                await browser.visit(`/login?_method=DELETE`);
-                await browser.visit(`/login`);
-                this.msg_err = `No se ha podido hacer login con ${user.username} y ${user.password}`;
+        scored(`El botón de crear un post no aparece si no hay nadie logueado.`, 0.3, async function(){
+            await asUser.apply(this, [null, async function(user) {
+                await browser.visit("/posts/");
+                this.msg_err = 'Se muestra el botón sin estar logueado';
+                browser.html().includes("posts/new").should.be.equal(false);
+            }]);
+        });
+        scored(`Se puede publicar un post si hay alguien logueado.`, 0.3, async function(){ 
+            await asUser.apply(this, ["pepe", async function(user) {
+                await browser.visit("/posts/new");
+                this.msg_err = 'No se permite acceder estando logueado';
+                browser.location.href.includes('/login').should.be.equal(false);
+            }]);
+        });
+        scored(`El botón de crear un post aparece si hay alguien logueado.`, 0.3, async function(){ 
+            await asUser.apply(this, ["pepe", async function(user) {
+                await browser.visit("/posts/");
+                this.msg_err = 'No se muestra el botón estando logueado';
+                browser.html().includes("posts/new").should.be.equal(true);
 
-                browser.assert.status(200)
-                await browser.fill('#username', user.username);
-                await browser.fill('#password', user.password);
-                await browser.pressButton('input[name=commit]');
-                // It should not redirect to the login page
-                log(browser.location.href);
+            }]);
+        });
+        scored(`Un post no puede editarse si no hay nadie logueado.`, 0.2, async function(){
+            await asUser.apply(this, [null, async function(user) {
+                await browser.visit("/posts/1/edit");
+                this.msg_err = 'Se muestra la página sin haber hecho login o no se redirecciona a login';
+                browser.location.href.includes('/login').should.be.equal(true);
+            }]);
+        });
+
+        scored(`El botón de editar un post no aparece si no hay nadie logueado.`, 0.2, async function(){ 
+            await asUser.apply(this, [null, async function(user) {
+                await browser.visit("/posts/1");
+                this.msg_err = 'Se muestra la página sin haber hecho login o no se redirecciona a login';
+                browser.html().includes('/edit').should.be.equal(false);
+            }]);
+        });
+
+        scored(`Un post no puede editarse si el usuario logueado no es ni administrador, ni el autor del post.`, 0.2, async function(){
+            await asUser.apply(this, ["pepe", async function(user) {
+                try {
+                await browser.visit("/posts/1/edit");
+                    this.msg_err = 'Se muestra la página sin ser el autor';
+                    throw new Error(this.msg_err);
+                }catch(e) {
+                }
+            }]);
+        });
+        scored(`El botón de editar un post no aparece si el usuario logueado no es ni administrador, ni el autor del post.`, 0.2, async function(){ 
+            await asUser.apply(this, ["pepe", async function(user) {
+                await browser.visit("/posts/1");
+                this.msg_err = 'Se muestra el botón sin ser el autor';
+                browser.html().includes('/edit').should.be.equal(false);
+            }]);
+        });
+
+        scored(`Un post puede ser editado por su autor.`, 0.2, async function(){ 
+            await allUsers.apply(this, [async function(user) {
+                this.msg_err = 'No se crea un nuevo post al mandar /posts/new';
+                await browser.visit("/posts/new");
+                browser.assert.status(200);
+
+                this.msg_err = `La página /posts/new no incluye el formulario de creación de un post correcto`;
+                browser.assert.element('#title');
+                browser.assert.element('#body');
+                browser.assert.element('#enviar');
+                await browser.fill('#title',`Mi titulo usuario ${user.username}`);
+                await browser.fill('#body', `Mi cuerpo usuario ${user.username}`);
+                await browser.pressButton('#enviar');
+                browser.assert.status(200);
+                log("POST CREADO. URL devuelta: " + browser.location.href);
+                browser.location.href.includes('/posts/').should.be.equal(true);
+                const post_url = browser.location.href;
+                await browser.visit(browser.location.href + '/edit');
+                browser.assert.status(200);
+                await browser.visit(post_url + '?_method=DELETE');
+            }]);
+        });
+        scored(`El botón de editar un post aparece si el usuario logueado es el autor del post.`, 0.2, async function(){
+            await allUsers.apply(this, [async function(user) {
+                this.msg_err = 'No se crea un nuevo post al mandar /posts/new';
+                await browser.visit("/posts/new");
+                browser.assert.status(200);
+
+                this.msg_err = `La página /posts/new no incluye el formulario de creación de un post correcto`;
+                browser.assert.element('#title');
+                browser.assert.element('#body');
+                browser.assert.element('#enviar');
+                await browser.fill('#title',`Mi titulo usuario ${user.username}`);
+                await browser.fill('#body', `Mi cuerpo usuario ${user.username}`);
+                await browser.pressButton('#enviar');
+                browser.assert.status(200);
+                const post_path = browser.location.pathname;
+                log("POST CREADO. URL devuelta: " + post_path);
+                browser.html().includes(post_path + '/edit').should.be.equal(true);
+                // Intentar borrar para no molestar en el resto.
+                await browser.visit(browser.location.href + '?_method=DELETE');
+            }]);
+        });
+
+        scored(`Un post puede ser editado por un administrador.`, 0.2, async function(){ 
+            await asUser.apply(this, ["admin", async function(user) {
+                await browser.visit("/posts/1/edit");
+                browser.assert.status(200);
                 browser.location.href.includes("login").should.be.equal(false);
+            }]);
+        });
+        scored(`El botón de editar un post aparece si el usuario logueado es un administrador.`, 0.2, async function(){
+            await asUser.apply(this, ["admin", async function(user) {
+                await browser.visit("/posts/1");
+                this.msg_err = 'No se muestra el botón al admin';
+                browser.html().includes('/edit').should.be.equal(true);
+            }]);
+        });
 
 
-                this.msg_err = 'No se muestra la página de creación de posts';
+        scored(`Un post no puede borrarse si no hay nadie logueado.`, 0.2, async function(){ 
+            await allUsers.apply(this, [async function(user) {
+                if(user.username == 'admin') {
+                    return;
+                }
+                this.msg_err = 'No se borra el post';
+                try {
+                    await browser.visit("/posts/1/?_method=DELETE");
+                }catch(e) {
+                    return;
+                }
+                throw new Error("Se pudo borrar el post, sin deber");
+            }]);
+        });
 
+        scored(`El botón de borrar un post no aparece si no hay nadie logueado.`, 0.2, async function(){ 
+            log(browser.html());
+            await asUser.apply(this, [null, async function(user) {
+                await browser.visit("/posts");
+                this.msg_err = 'Se muestra sin haber hecho login o no se redirecciona a login';
+                browser.html().includes('delete').should.be.equal(false);
+            }]);
+        });
+
+        scored(`Un post no puede borrarse si el usuario logueado no es ni administrador, ni el autor del post.`, 0.2, async function(){ 
+            await asUser.apply(this, ["pepe", async function(user) {
+                try {
+                    await browser.visit("/posts/1/?_method=DELETE");
+                    this.msg_err = 'Se muestra la página sin ser el autor';
+                }catch(e) {
+                    return;
+                }
+                throw new Error(this.msg_err);
+            }]);
+        });
+        scored(`El botón de borrar un post no aparece si el usuario logueado no es ni administrador, ni el autor del post.`, 0.2, async function(){ 
+              await asUser.apply(this, ["pepe", async function(user) {
+                  await browser.visit("/posts/1/");
+                  this.msg_err = 'Se muestra el botón sin ser el autor';
+                  browser.html().includes('delete').should.be.equal(false);
+              }]);
+          });
+        scored(`Un post puede ser borrado por su autor.`, 0.2, async function(){
+            await allUsers.apply(this, [async function(user) {
+                this.msg_err = 'No se crea un nuevo post al mandar /posts/new';
                 await browser.visit("/posts/new");
                 browser.assert.status(200);
 
-                this.msg_err = 'No se puede crear un nuevo post';
+                this.msg_err = `La página /posts/new no incluye el formulario de creación de un post correcto`;
                 browser.assert.element('#title');
                 browser.assert.element('#body');
                 browser.assert.element('#enviar');
-                await browser.fill('#title','Post con usuario');
-                await browser.fill('#body', 'Cuerpo con usuario');
+                await browser.fill('#title',`Mi titulo usuario ${user.username}`);
+                await browser.fill('#body', `Mi cuerpo usuario ${user.username}`);
                 await browser.pressButton('#enviar');
                 browser.assert.status(200);
-
-                this.msg_err = `La página de visualización del nuevo post no muestra el nombre del autor correcto`;
                 log("POST CREADO. URL devuelta: " + browser.location.href);
                 browser.location.href.includes('/posts/').should.be.equal(true);
-                log(browser.html());
-                browser.assert.element('#author');
-                browser.html().includes(user.username).should.be.equal(true);
-            }
+                const post_url = browser.location.href;
+                await browser.visit(post_url + '?_method=DELETE');
+            }]);
         });
-
-        scored(`Si un post no tiene autor, entonces la vista **show** de ese post debe mostrar el texto **Anonymous** como nombre del autor.`, 1.5, async function() {
-                await browser.visit(`/login?_method=DELETE`);
-                await browser.visit(`/login`);
-
+        scored(`El botón de borrar un post aparece si el usuario logueado es el autor del post.`, 0.2, async function(){
+            await allUsers.apply(this, [async function(user) {
+                this.msg_err = 'No se crea un nuevo post al mandar /posts/new';
                 await browser.visit("/posts/new");
                 browser.assert.status(200);
 
-                this.msg_err = 'No se puede crear un nuevo post';
+                this.msg_err = `La página /posts/new no incluye el formulario de creación de un post correcto`;
                 browser.assert.element('#title');
                 browser.assert.element('#body');
                 browser.assert.element('#enviar');
-                await browser.fill('#title','Post con usuario anónimo');
-                await browser.fill('#body', 'Cuerpo con usuario anónimo');
+                await browser.fill('#title',`Mi titulo usuario ${user.username}`);
+                await browser.fill('#body', `Mi cuerpo usuario ${user.username}`);
                 await browser.pressButton('#enviar');
                 browser.assert.status(200);
-
-                this.msg_err = `La página de visualización del nuevo post no muestra el nombre del autor correcto`;
                 log("POST CREADO. URL devuelta: " + browser.location.href);
-                browser.location.href.includes('/posts/').should.be.equal(true);
-                log(browser.html());
-                browser.assert.element('#author');
-                browser.html().includes("Anonymous").should.be.equal(true);
+                this.msg_err = "La vista de edición del post no incluye un botón para borrarlo";
+                browser.html().includes("DELETE").should.be.equal(true);
+                await browser.visit(browser.location.href + '?_method=DELETE');
+            }]);
         });
-
-        scored(`La vista **index** debe mostrar el nombre del autor o el texto **Anonymous** para todos los posts listados.`, 3.0, async function() {
-            await browser.visit("/posts/");
-
-            for(const el of browser.queryAll('.author')) {
-                log(el.innerHTML);
-                // The author should be one of the seeder values or anonymous
-                /pepe|admin|Anonymous/.test(el.innerHTML).should.be.equal(true);
+        scored(`Un post puede ser borrado por un administrador.`, 0.2, async function(){ 
+            await asUser.apply(this, ["admin", async function(user) {
+                this.msg_err = 'No permite borrar el post';
+                await browser.visit("/posts/3/?_method=DELETE");
+                browser.assert.status(200);
+            }]);
+            try {
+            await browser.visit("/posts/3");
+            }catch(e) {
+                return
             }
+            throw new Error("El post sigue estando disponible");
         });
+          scored(`El botón de borrar un post aparece si el usuario logueado es un administrador.`, 0.2, async function(){
+              await asUser.apply(this, ["admin", async function(user) {
+                  await browser.visit("/posts/1");
+                  browser.assert.status(200);
+                  browser.html().includes("DELETE").should.be.equal(true);
+              }]);
+          });
+
+          scored(`La peticion /users no está permitida si nadie está logueado.`, 0.2, async function(){ 
+              await asUser.apply(this, [null, async function(user) {
+                  try {
+                      await browser.visit("/users");
+                  }catch(e) {
+                      browser.assert.status(403);
+                      return;
+                  }
+                  throw new Error("No debería permitirse");
+              }]);
+          });
+        scored(`La peticion /users no está permitida si el usuario logueado no es un administrador.`, 0.2, async function(){ 
+            await asUser.apply(this, ["pepe", async function(user) {
+                try { 
+                    await browser.visit("/users");
+                }catch(e) {
+                    browser.assert.status(403);
+                    return;
+                }
+                throw new Error("No debería permitirse");
+            }]);
+        });
+          scored(`La peticion /users  está permitida si el usuario logueado  es un administrador.`, 0.2, async function(){ 
+              await asUser.apply(this, ["admin", async function(user) {
+                  await browser.visit("/users");
+                  browser.assert.status(200);
+              }]);
+          });
+
+        scored(`El boton /users de la barra de navegación no aparece si no hay nadie logueado.`, 0.2, async function(){ 
+            await asUser.apply(this, [null, async function(user) {
+                await browser.visit("/");
+                browser.assert.elements('[href="/users"]', 0);
+                // browser.html().includes('/users"').should.be.equal(false);
+            }]);
+        });
+
+        scored(`El boton /users de la barra de navegación no aparece si el usuario logueado no es administrador.`, 0.2, async function(){ 
+            await asUser.apply(this, ["pepe", async function(user) {
+                await browser.visit("/");
+                browser.assert.elements('[href="/users"]', 0);
+            }]);
+        });
+          scored(`El boton /users de la barra de navegación  aparece si el usuario logueado es administrador.`, 0.2, async function(){ 
+              await asUser.apply(this, ["admin", async function(user) {
+                  await browser.visit("/");
+                  browser.assert.elements('[href="/users"]', 1, 1);
+              }]);
+          });
+          scored(`La petición para ver el perfil de un usuario no está permitida si no hay nadie logueado.`, 0.4, async function(){ 
+              await asUser.apply(this, [null, async function(user) {
+                  await browser.visit("/users/1");
+                  this.msg_err = "No se redirecciona a la página de login";
+                  browser.location.href.includes('/login').should.be.equal(true);
+              }]);
+          });
+        scored(`La petición para ver el perfil de un usuario no está permitida si el usuario logueado no es un administrador.`, 0.4, async function(){ 
+            await asUser.apply(this, ["pepe", async function(user) {
+                try {
+                    await browser.visit("/users/1");
+                    this.msg_err = "Se permite acceder, y no debería";
+                }catch(e) {
+                    browser.assert.status(403);
+                    return;
+                }
+                throw new Error(this.msg_err);
+            }]);
+        });
+        scored(`La petición para ver el perfil de un usuario está permitida si el usuario logueado es un administrador.`, 0.4, async function(){ 
+            await asUser.apply(this, ["admin", async function(user) {
+                await browser.visit("/users/1");
+                browser.location.href.includes('/login').should.be.equal(false);
+            }]);
+        });
+
+        scored(`La petición para editar el perfil de un usuario no está permitida si no hay nadie logueado.`, 0.3, async function(){ 
+            await asUser.apply(this, [null, async function(user) {
+                await browser.visit("/users/1/edit");
+                this.msg_err = "No se redirecciona a la página de login";
+                browser.location.href.includes('/login').should.be.equal(true);
+            }]);
+        });
+        scored(`La petición para editar el perfil de un usuario no está permitida si el usuario logueado no es un administrador.`, 0.3, async function(){ 
+            await asUser.apply(this, ["pepe", async function(user) {
+                try {
+                    await browser.visit("/users/1/edit");
+                    this.msg_err = "Se permite el acceso, pero no debería";
+                }catch(e) {
+                    browser.assert.status(403);
+                    return;
+                }
+                throw new Error(this.msg_err);
+            }]);
+        });
+        scored(`La petición para editar el perfil de un usuario está permitida si el usuario logueado es un administrador.`, 0.3, async function(){ 
+            await asUser.apply(this, ["admin", async function(user) {
+                await browser.visit("/users/1/edit");
+                browser.assert.status(200);
+            }]);
+        });
+        scored(`La petición para borrar el perfil de un usuario no está permitida si no hay nadie logueado.`, 0.3, async function(){ 
+            await asUser.apply(this, [null, async function(user) {
+                await browser.visit("/users/1/?method=DELETE");
+                this.msg_err = "No se redirecciona a la página de login";
+                browser.location.href.includes('/login').should.be.equal(true);
+            }]);
+        });
+        scored(`La petición para borrar el perfil de un usuario no está permitida si el usuario logueado no es un administrador.`, 0.3, async function(){ 
+            await asUser.apply(this, ["pepe", async function(user) {
+                try {
+                    await browser.visit("/users/1/?method=DELETE");
+                    this.msg_err = "Se permite el acceso, pero no debería";
+                }catch(e) {
+                    browser.assert.status(403);
+                    return;
+                }
+                throw new Error(this.msg_err);
+            }]);
+        });
+        scored(`La petición para crear un usuario no está permitida si no hay nadie logueado.`, 0.4, async function(){ 
+            await asUser.apply(this, [null, async function(user) {
+                try {
+                    await browser.visit("/users/new");
+                    this.msg_err = "Se permite el acceso, pero no debería";
+                }catch(e) {
+                    browser.assert.status(403);
+                    return;
+                }
+                throw new Error(this.msg_err);
+            }]);
+        });
+        scored(`La petición para crear un usuario no está permitida si el usuario logueado no es un administrador.`, 0.4, async function(){ 
+            await asUser.apply(this, ["pepe", async function(user) {
+                try {
+                    await browser.visit("/users/new");
+                    this.msg_err = "Se permite el acceso, pero no debería";
+                }catch(e) {
+                    browser.assert.status(403);
+                    return;
+                }
+                throw new Error(this.msg_err);
+            }]);
+        });
+          scored(`La petición para crear un usuario está permitida si el usuario logueado es un administrador.`, 0.4, async function(){ 
+          await asUser.apply(this, ["admin", async function(user) {
+          await browser.visit("/users/new");
+          browser.assert.status(200);
+          }]);
+          });
+          scored(`La petición para borrar el perfil de un usuario está permitida si el usuario logueado es un administrador.`, 0.3, async function(){ 
+          await asUser.apply(this, ["admin", async function(user) {
+          await browser.visit("/users/2/?method=DELETE");
+          browser.assert.status(200);
+          }]);
+          });
+        /*
+        */
     });
-
-})
+});
