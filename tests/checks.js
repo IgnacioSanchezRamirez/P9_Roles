@@ -596,19 +596,19 @@ describe("Tests Práctica 9", function() {
                 throw new Error(this.msg_err);
             }]);
         });
-          scored(`La petición para crear un usuario está permitida si el usuario logueado es un administrador.`, 0.4, async function(){ 
-          await asUser.apply(this, ["admin", async function(user) {
-          await browser.visit("/users/new");
-          browser.assert.status(200);
-          }]);
-          });
-          scored(`La petición para borrar el perfil de un usuario está permitida si el usuario logueado es un administrador.`, 0.3, async function(){ 
-          await asUser.apply(this, ["admin", async function(user) {
-          await browser.visit("/users/2/?method=DELETE");
-          browser.assert.status(200);
-          }]);
-          });
+        scored(`La petición para crear un usuario está permitida si el usuario logueado es un administrador.`, 0.4, async function(){ 
+            await asUser.apply(this, ["admin", async function(user) {
+                await browser.visit("/users/new");
+                browser.assert.status(200);
+            }]);
+        });
+        scored(`La petición para borrar el perfil de un usuario está permitida si el usuario logueado es un administrador.`, 0.3, async function(){ 
+            await asUser.apply(this, ["admin", async function(user) {
+                await browser.visit("/users/2/?method=DELETE");
+                browser.assert.status(200);
+            }]);
+        });
         /*
-        */
+         */
     });
 });
