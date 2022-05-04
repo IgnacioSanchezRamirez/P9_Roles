@@ -275,9 +275,10 @@ describe("Tests Práctica 9", function() {
         scored(`Un post no puede editarse si el usuario logueado no es ni administrador, ni el autor del post.`, 0.2, async function(){
             await asUser.apply(this, ["pepe", async function(user) {
                 try {
-                await browser.visit("/posts/1/edit");
+                    await browser.visit("/posts/1/edit");
                     this.msg_err = 'Se muestra la página sin ser el autor';
                     throw new Error(this.msg_err);
+                    browser.location.href.includes('/login').should.be.equal(true);
                 }catch(e) {
                 }
             }]);
@@ -461,7 +462,8 @@ describe("Tests Práctica 9", function() {
                       browser.assert.status(403);
                       return;
                   }
-                  throw new Error("No debería permitirse");
+                  this.msg_err = 'Debería redireccionarse a login o emitir un error 403';
+                  browser.location.href.includes('/login').should.be.equal(true);
               }]);
           });
         scored(`La peticion /users no está permitida si el usuario logueado no es un administrador.`, 0.2, async function(){ 
@@ -504,8 +506,14 @@ describe("Tests Práctica 9", function() {
           });
           scored(`La petición para ver el perfil de un usuario no está permitida si no hay nadie logueado.`, 0.4, async function(){ 
               await asUser.apply(this, [null, async function(user) {
+                  try {
                   await browser.visit("/users/1");
-                  this.msg_err = "No se redirecciona a la página de login";
+                      this.msg_err = "No se redirecciona a la página de login";
+                      browser.location.href.includes('/login').should.be.equal(true);
+                  } catch(e) {
+                      return;
+                  }
+                  this.msg_err = 'Debería redireccionarse a login o emitir un error 403';
                   browser.location.href.includes('/login').should.be.equal(true);
               }]);
           });
@@ -555,7 +563,7 @@ describe("Tests Práctica 9", function() {
         });
         scored(`La petición para borrar el perfil de un usuario no está permitida si no hay nadie logueado.`, 0.3, async function(){ 
             await asUser.apply(this, [null, async function(user) {
-                await browser.visit("/users/1/?method=DELETE");
+                await browser.visit("/users/1/?_method=DELETE");
                 this.msg_err = "No se redirecciona a la página de login";
                 browser.location.href.includes('/login').should.be.equal(true);
             }]);
@@ -563,7 +571,7 @@ describe("Tests Práctica 9", function() {
         scored(`La petición para borrar el perfil de un usuario no está permitida si el usuario logueado no es un administrador.`, 0.3, async function(){ 
             await asUser.apply(this, ["pepe", async function(user) {
                 try {
-                    await browser.visit("/users/1/?method=DELETE");
+                    await browser.visit("/users/1/?_method=DELETE");
                     this.msg_err = "Se permite el acceso, pero no debería";
                 }catch(e) {
                     browser.assert.status(403);
@@ -581,7 +589,7 @@ describe("Tests Práctica 9", function() {
                     browser.assert.status(403);
                     return;
                 }
-                throw new Error(this.msg_err);
+                browser.location.href.includes('/login').should.be.equal(true);
             }]);
         });
         scored(`La petición para crear un usuario no está permitida si el usuario logueado no es un administrador.`, 0.4, async function(){ 
@@ -604,7 +612,7 @@ describe("Tests Práctica 9", function() {
         });
         scored(`La petición para borrar el perfil de un usuario está permitida si el usuario logueado es un administrador.`, 0.3, async function(){ 
             await asUser.apply(this, ["admin", async function(user) {
-                await browser.visit("/users/2/?method=DELETE");
+                await browser.visit("/users/2/?_method=DELETE");
                 browser.assert.status(200);
             }]);
         });
