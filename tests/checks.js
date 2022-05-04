@@ -258,8 +258,11 @@ describe("Tests Práctica 9", function() {
         });
         scored(`Un post no puede editarse si no hay nadie logueado.`, 0.2, async function(){
             await asUser.apply(this, [null, async function(user) {
-                await browser.visit("/posts/1/edit");
-                this.msg_err = 'Se muestra la página sin haber hecho login o no se redirecciona a login';
+                try {
+                    await browser.visit("/posts/1/edit");
+                }catch(e) {
+                    browser.assert.status(403);
+                }
                 browser.location.href.includes('/login').should.be.equal(true);
             }]);
         });
@@ -276,11 +279,11 @@ describe("Tests Práctica 9", function() {
             await asUser.apply(this, ["pepe", async function(user) {
                 try {
                     await browser.visit("/posts/1/edit");
-                    this.msg_err = 'Se muestra la página sin ser el autor';
-                    throw new Error(this.msg_err);
-                    browser.location.href.includes('/login').should.be.equal(true);
                 }catch(e) {
+                    return;
                 }
+                this.msg_err = 'Se muestra la página sin ser el autor';
+                throw new Error(this.msg_err);
             }]);
         });
         scored(`El botón de editar un post no aparece si el usuario logueado no es ni administrador, ni el autor del post.`, 0.2, async function(){ 
@@ -379,10 +382,10 @@ describe("Tests Práctica 9", function() {
             await asUser.apply(this, ["pepe", async function(user) {
                 try {
                     await browser.visit("/posts/1/?_method=DELETE");
-                    this.msg_err = 'Se muestra la página sin ser el autor';
                 }catch(e) {
                     return;
                 }
+                this.msg_err = 'Se muestra la página sin ser el autor';
                 throw new Error(this.msg_err);
             }]);
         });
