@@ -7,7 +7,7 @@
         "githubURL": "CORE-UPM/P9_Roles",
         "serverUrl": "https://autocorector.dit.upm.es/",
         "courseId": "395",
-        "assignmentId": ""
+        "assignmentId": "53914"
     },
     "dependencies": {
         "sequelize": "^6.17.0",

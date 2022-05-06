@@ -67,6 +67,14 @@ También puede ejecutar el siguiente comando en un terminal unix para copiar el 
 
     $ cp -r PATH_DE_PRACTICA_8/Entrega8_autores/blog PATH_DE_PRACTICA_9/Entrega9_Roles/.
 
+
+Ejecutar las migraciones de las prácticas anteriores en el caso de que no se haya copiado el archivo **.sqlite** con la base de datos:
+
+    $ npm run migrate    ## sistemas unix
+    $ npm run migrate_win   ## sistemas windows
+
+y probar el funcionamiento del nuevo servidor.
+
 ### Tarea 2 - Crear los middlewares que protegen ciertas primitivas
 
 Los middlewares que se usarán en esta práctica son parecidos o iguales  que los se desarrollaron en el mini proyecto **Autores y Autorización** para
