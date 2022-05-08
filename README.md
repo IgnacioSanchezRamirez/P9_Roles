@@ -45,7 +45,7 @@ Las limitaciones que se añadirán a la práctica son las siguientes:
 Es necesario utilizar la **versión 16 de Node.js** para el desarrollo de esta práctica.
 El proyecto debe clonarse en el ordenador en el que se está trabajando:
 
-    $ git clone https://github.com/CORE-UPM/Entrega9_Roles
+    $ git clone https://github.com/CORE-UPM/P9_Roles
 
 A continuación se debe acceder al directorio de trabajo, e instalar todas las dependencias propias de esta práctica.
 
