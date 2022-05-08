@@ -45,11 +45,11 @@ Las limitaciones que se añadirán a la práctica son las siguientes:
 Es necesario utilizar la **versión 16 de Node.js** para el desarrollo de esta práctica.
 El proyecto debe clonarse en el ordenador en el que se está trabajando:
 
-    $ git clone https://github.com/CORE-UPM/Entrega9_Roles
+    $ git clone https://github.com/CORE-UPM/P9_Roles
 
 A continuación se debe acceder al directorio de trabajo, e instalar todas las dependencias propias de esta práctica.
 
-    $ cd Entrega9_Roles
+    $ cd P9_Roles
     $ npm install
 
 ## Tareas
@@ -58,14 +58,14 @@ A continuación se debe acceder al directorio de trabajo, e instalar todas las d
 
 En esta práctica hay que continuar y ampliar el desarrollo realizado en la práctica 8.
 
-El alumno debe copiar el directorio **blog** de la **Entrega8_autores** en el directorio **Entrega9_Roles/blog** de
-esta práctica 9. Las tareas a realizar en esta práctica 9 de desarrollarán dentro del directorio **Entrega9_Roles/blog**.
+El alumno debe copiar el directorio **blog** de la **Entrega8_autores** en el directorio **P9_Roles/blog** de
+esta práctica 9. Las tareas a realizar en esta práctica 9 de desarrollarán dentro del directorio **P9_Roles/blog**.
 
-Para copiar/duplicar el directorio **Entrega8_autores/blog** en el directorio **Entrega9_Roles/blog**, puede usar un
+Para copiar/duplicar el directorio **Entrega8_autores/blog** en el directorio **P9_Roles/blog**, puede usar un
 explorador de archivos. Asegúrese de copiar el directorio y no de moverlo de sitio, para no perder el trabajo original.
 También puede ejecutar el siguiente comando en un terminal unix para copiar el directorio y todo su contenido:
 
-    $ cp -r PATH_DE_PRACTICA_8/Entrega8_autores/blog PATH_DE_PRACTICA_9/Entrega9_Roles/.
+    $ cp -r PATH_DE_PRACTICA_8/Entrega8_autores/blog PATH_DE_PRACTICA_9/P9_Roles/.
 
 
 Ejecutar las migraciones de las prácticas anteriores en el caso de que no se haya copiado el archivo **.sqlite** con la base de datos:
